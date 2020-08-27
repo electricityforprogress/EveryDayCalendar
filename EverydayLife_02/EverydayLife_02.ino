@@ -18,9 +18,13 @@
 #define WORLDMAXX 28   //19 //length
 #define WORLDMAXY 12 //height
 byte world[WORLDMAXX+1][WORLDMAXY+1];
+
+# define indexMax 5
 int worldCheck = 0;
-int prevCheck = 0;
-int checkCount = 0;
+int prevCheck[indexMax];
+byte checkIndex = 0;
+
+
 unsigned long prevMillis = 0;
 unsigned long resetTime = 30000;
 unsigned long prevRefresh = 0;
@@ -80,9 +84,9 @@ void loop() {
   //serialWorld();
 
   //reset after an amount of time
-  if(playMode && prevMillis + resetTime < millis()) {
-    initworld(); prevMillis = millis();
-  }
+//  if(playMode && prevMillis + resetTime < millis()) {
+//    initworld(); prevMillis = millis();
+//  }
 
 
 }
@@ -95,9 +99,34 @@ void updateWorld() {
     }
   }
 
+  //back up worldcheck history
+ if(playMode) {
+  if(checkIndex < indexMax) {
+    prevCheck[checkIndex] = worldCheck;
+    checkIndex++;
+  } else  { 
+    //array full, compare all values
+    //no change all are equal
+    //oscillation, every other is equal
+    bool same = 1;
+    for(byte i=1;i<indexMax;i++) {
+      if(prevCheck[i] != prevCheck[i-1]) same = 0;
+    }
+    if(same) { initworld(); return; } //reset high
+    checkIndex = 0;
+  }
+ }
+
+ if(worldCheck == 0 && !playMode) {
+  //empty and playing game
+  initworld(); return;
+ }
+  worldCheck = 0; //reset check
+
   for (i = 0; i<= WORLDMAXX; i++) {
     for (j = 0; j<= WORLDMAXY; j++) {
-      world[i][j] = world[i][j] >> 1;       
+      world[i][j] = world[i][j] >> 1;    
+      worldCheck += world[i][j]; //create new checksum of world   
     }
   }
 }
