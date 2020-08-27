@@ -92,43 +92,51 @@ void loop() {
 }
 
 void updateWorld() {
-  int i, j;
-  for (i = 0; i<= WORLDMAXX; i++) {
-    for (j = 0; j<= WORLDMAXY; j++) {
-      isalive(i,j);
+    int i, j;
+    for (i = 0; i<= WORLDMAXX; i++) {
+      for (j = 0; j<= WORLDMAXY; j++) {
+        isalive(i,j);
+      }
     }
-  }
+  
+    //back up worldcheck history
 
-  //back up worldcheck history
- if(playMode) {
-  if(checkIndex < indexMax) {
-    prevCheck[checkIndex] = worldCheck;
-    checkIndex++;
-  } else  { 
-    //array full, compare all values
-    //no change all are equal
-    //oscillation, every other is equal
-    bool same = 1;
-    for(byte i=1;i<indexMax;i++) {
-      if(prevCheck[i] != prevCheck[i-1]) same = 0;
+    if(checkIndex < indexMax) {
+      prevCheck[checkIndex] = worldCheck;
+      checkIndex++;
+    } else  { 
+      //array full, compare all values
+      //no change all are equal
+      //oscillation, every other is equal
+      bool same = 1;
+      for(byte i=1;i<indexMax;i++) {
+        if(prevCheck[i] != prevCheck[i-1]) same = 0;
+      }
+     if(same && playMode) { 
+        initworld(); 
+        checkIndex = 0;
+        return; 
+     } //reset high
+      checkIndex = 0;
     }
-    if(same) { initworld(); return; } //reset high
+
+  
+   if(worldCheck == 0 && !playMode) {
+    //empty and playing game
+    initworld(); 
     checkIndex = 0;
-  }
- }
-
- if(worldCheck == 0 && !playMode) {
-  //empty and playing game
-  initworld(); return;
- }
-  worldCheck = 0; //reset check
-
-  for (i = 0; i<= WORLDMAXX; i++) {
-    for (j = 0; j<= WORLDMAXY; j++) {
-      world[i][j] = world[i][j] >> 1;    
-      worldCheck += world[i][j]; //create new checksum of world   
+    worldCheck = 1; //gotta keep it ready for the next compare
+    return;
+   }
+   
+    worldCheck = 0; //reset check
+  
+    for (i = 0; i<= WORLDMAXX; i++) {
+      for (j = 0; j<= WORLDMAXY; j++) {
+        world[i][j] = world[i][j] >> 1;    
+        worldCheck += world[i][j]; //create new checksum of world   
+      }
     }
-  }
 }
 
 typedef struct {
@@ -138,11 +146,6 @@ typedef struct {
 
 void updateDisplay() {
 
-    // Fade out
-//  for(int b = 200; b >= 0; b--){
-//    cal_lights.setBrightness(b);
-//    delay(4);
-//  }
   
   for( int row = 0; row < WORLDMAXX; row++) {
     for( int col = 0; col < WORLDMAXY; col++) {
