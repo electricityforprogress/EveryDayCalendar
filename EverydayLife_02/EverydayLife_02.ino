@@ -23,6 +23,7 @@ int prevCheck = 0;
 int checkCount = 0;
 unsigned long prevMillis = 0;
 unsigned long resetTime = 30000;
+unsigned long prevRefresh = 0;
 int stepcount;
 int refreshRate = 535;
  
@@ -30,7 +31,7 @@ void initworld();
  
 int isalive(int x, int y);
 int countneighbor(int x, int y);
-
+bool playMode = 1;
 
 EverydayCalendar_touch cal_touch;
 EverydayCalendar_lights cal_lights;
@@ -51,7 +52,7 @@ void setup() {
   cal_touch.begin();
    delay(1500);
   
-  //  Serial.println("Everyday Life - Conway's Calendar");
+    Serial.println("Everyday Life - Conway's Calendar");
      initworld();
 }
 
@@ -60,46 +61,45 @@ void controlButtonLights() {
     cal_lights.setLED(7,30,1);
     cal_lights.setLED(9,30,1);
       cal_lights.setLED(11,30,1);
-      
+       cal_lights.setLED(0,30,playMode);
 }
 
 void loop() {
+
+
+  if(prevRefresh + refreshRate < millis()) { 
+    updateWorld(); // do this at some rate
+    prevRefresh = millis();
+  }
+
+  //update display
+  updateDisplay();
+
+  updateButtons();
+
+  //serialWorld();
+
+  //reset after an amount of time
+  if(playMode && prevMillis + resetTime < millis()) {
+    initworld(); prevMillis = millis();
+  }
+
+
+}
+
+void updateWorld() {
   int i, j;
- 
   for (i = 0; i<= WORLDMAXX; i++) {
     for (j = 0; j<= WORLDMAXY; j++) {
       isalive(i,j);
     }
   }
 
-
-
   for (i = 0; i<= WORLDMAXX; i++) {
     for (j = 0; j<= WORLDMAXY; j++) {
       world[i][j] = world[i][j] >> 1;       
     }
   }
-
-
-  //update display
-  updateDisplay();
- 
-
-  //serialWorld();
-  updateButtons();
-
-  //serialWorld();
-
-  if(prevMillis + resetTime < millis()) {
-    initworld(); prevMillis = millis();
-  }
-
-  
-  
-  //change this to a sezy fade in and out of the prev and current board
-  delay(refreshRate);
-
-
 }
 
 typedef struct {
@@ -127,7 +127,7 @@ void updateDisplay() {
 
 //show refresh rate at bottom
      for(byte i = 0; i < 8; i++) {
-       if( map(refreshRate,0,1500,0,8) >= i ) cal_lights.setLED(i+2,29,1);
+       if( map(refreshRate,0,1500,8,0) >= i ) cal_lights.setLED(i+2,29,1);
        else cal_lights.setLED(i+2,29,0);
      }
      controlButtonLights();
@@ -159,8 +159,8 @@ void updateButtons() {
         brightness += 2;
       }
       brightness = constrain(brightness, 0, 200);
-   //   Serial.print("Brightness: ");
-   //   Serial.println(brightness);
+      Serial.print("Brightness: ");
+      Serial.println(brightness);
       cal_lights.setBrightness((uint8_t)brightness);
     }
 
@@ -175,6 +175,7 @@ void updateButtons() {
       }
      if((cal_touch.x == 9) && (cal_touch.y==30)) {
        //turn all lights off, wait for any touch
+       Serial.println("Turn off - any touch to begin");
        cal_lights.setBrightness(0);
        delay(1000);
        while(!cal_touch.scanForTouch()) {
@@ -182,15 +183,21 @@ void updateButtons() {
        }
        cal_lights.setBrightness(brightness);
      }
-          if((cal_touch.x == 6) && (cal_touch.y==30)) {
+     if((cal_touch.x == 7) && (cal_touch.y==30)) {
        //slow down
-       if(refreshRate <= 1500) refreshRate += 100;
-       Serial.print("Refresh "); Serial.println(refreshRate);
+       if(refreshRate >= 34) refreshRate -= 33;
      }
-          if((cal_touch.x == 7) && (cal_touch.y==30)) {
+     if((cal_touch.x == 6) && (cal_touch.y==30)) {
        //speed up
-       if(refreshRate >= 100) refreshRate -= 100;
-       Serial.print("Refresh "); Serial.println(refreshRate);
+       if(refreshRate <= 1500) refreshRate += 33;
+     }
+     Serial.print("Refresh "); Serial.println(refreshRate);
+
+     if((cal_touch.x == 0) && (cal_touch.y == 30)) {
+      //toggle play mode
+      playMode = !playMode;
+      Serial.print("PlayMode :"); Serial.println(playMode);
+      delay(250);
      }
     }
   }
